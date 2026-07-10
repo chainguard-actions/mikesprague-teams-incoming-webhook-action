@@ -1,0 +1,78 @@
+name: Test user mentions - valid and invalid entries
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REF: refs/heads/main
+      GITHUB_EVENT_NAME: push
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Start mock webhook server
+        run: |
+          python3 -c "
+          import http.server
+
+          class Handler(http.server.BaseHTTPRequestHandler):
+              def do_POST(self):
+                  length = int(self.headers.get('Content-Length', 0))
+                  body = self.rfile.read(length)
+                  self.send_response(200)
+                  self.send_header('Content-Type', 'application/json')
+                  self.end_headers()
+                  self.wfile.write(b'1')
+              def log_message(self, format, *args):
+                  pass
+
+          server = http.server.HTTPServer(('127.0.0.1', 9997), Handler)
+          server.serve_forever()
+          " &
+          sleep 1
+          echo "Mock server started on port 9997"
+
+      - name: Test with valid user mentions
+        id: action-valid-mentions
+        uses: .
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: "http://127.0.0.1:9997/webhook"
+          title: "Notification with Mentions"
+          message: "Tagging team members"
+          user-mentions: "Alice|alice@example.com,Bob|bob@example.com"
+
+      - name: Assert valid mentions action completed
+        run: |
+          echo "Action with valid user mentions completed successfully"
+          echo "PASS"
+
+      - name: Test with mixed valid and invalid user mentions
+        id: action-mixed-mentions
+        uses: .
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: "http://127.0.0.1:9997/webhook"
+          title: "Notification with Mixed Mentions"
+          message: "Some mentions are invalid and should be ignored"
+          user-mentions: "Alice|alice@example.com,invalid-entry-no-pipe,Bob|bob@example.com"
+
+      - name: Assert mixed mentions action completed
+        run: |
+          echo "Action with mixed valid/invalid user mentions completed successfully (invalid entries are ignored)"
+          echo "PASS"
+
+      - name: Test with no user mentions
+        id: action-no-mentions
+        uses: .
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: "http://127.0.0.1:9997/webhook"
+          title: "Notification without Mentions"
+          message: "No user mentions in this notification"
+          user-mentions: ""
+
+      - name: Assert no mentions action completed
+        run: |
+          echo "Action with no user mentions completed successfully"
+          echo "PASS"

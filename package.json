@@ -1,0 +1,84 @@
+{
+  "name": "teams-incoming-webhook-action",
+  "version": "2.2.0",
+  "description": "GitHub Action to send an MS Teams notification via Incoming Webhook",
+  "main": "./src/index.ts",
+  "private": "true",
+  "type": "module",
+  "scripts": {
+    "build": "bun run prepare",
+    "changelog": "bun x conventional-changelog -p conventionalcommits -n changelog.config.mjs -i CHANGELOG.md -s && git add CHANGELOG.md",
+    "declarations": "rm -rf ./types && tsc --emitDeclarationOnly --declaration true --declarationDir './types'",
+    "format": "bun x oxfmt src",
+    "format:check": "bun x oxfmt --check src",
+    "lint": "bun x oxlint src",
+    "version": "bun run changelog",
+    "postbuild": "bun run typedoc-html",
+    "prepare": "rm -rf dist && bun x ncc build --source-map --license licenses.txt",
+    "test": "bun x vitest run --coverage && bun run lint && bun run typecheck",
+    "test:watch": "bun x vitest",
+    "test:ui": "bun x vitest --ui",
+    "test:coverage": "bun x vitest run --coverage",
+    "test:junit": "bun x vitest run --reporter=junit --outputFile=test-report.junit.xml",
+    "typecheck": "bun x tsc --noEmit",
+    "typedoc": "bun x typedoc --out ./docs --entryPointStrategy expand ./src --plugin typedoc-plugin-markdown --readme none",
+    "typedoc-html": "bun x typedoc --out ./docs/publish --entryPointStrategy expand ./src --readme ./README.md"
+  },
+  "engines": {
+    "bun": ">= 1.3.x",
+    "node": ">= 24.x",
+    "npm": ">= 11.x"
+  },
+  "packageManager": "bun@1.3.14",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mikesprague/teams-incoming-webhook-action.git"
+  },
+  "keywords": [
+    "GitHub",
+    "Actions",
+    "TypeScript"
+  ],
+  "author": {
+    "name": "Michael Sprague",
+    "email": "mikesprague@gmail.com"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mikesprague/teams-incoming-webhook-action/issues"
+  },
+  "homepage": "https://github.com/mikesprague/teams-incoming-webhook-action#readme",
+  "dependencies": {
+    "@actions/core": "3.0.1",
+    "@octokit/rest": "22.0.1",
+    "dayjs": "1.11.21"
+  },
+  "devDependencies": {
+    "@octokit/types": "16.0.0",
+    "@types/node": "26.0.1",
+    "@vercel/ncc": "0.44.0",
+    "@vitest/coverage-v8": "4.1.9",
+    "@vitest/ui": "4.1.9",
+    "bun": "1.3.14",
+    "bun-types": "1.3.14",
+    "commitizen": "4.3.2",
+    "conventional-changelog": "8.0.0",
+    "conventional-changelog-conventionalcommits": "10.2.0",
+    "cz-git": "1.13.1",
+    "oxfmt": "0.56.0",
+    "oxlint": "1.71.0",
+    "typedoc": "0.28.19",
+    "typedoc-plugin-markdown": "4.12.0",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-git"
+    }
+  },
+  "volta": {
+    "node": "26.4.0",
+    "npm": "11.18.0"
+  }
+}
