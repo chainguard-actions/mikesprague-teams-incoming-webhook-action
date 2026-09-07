@@ -1,0 +1,14 @@
+name: 🤖 Dependabot auto-merge
+
+on: [pull_request]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  call-auto-merge-workflow:
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    uses: mikesprague/reusable-workflows/.github/workflows/dependabot-auto-merge.yml@73ef64e1657d201843498e58b4847ad4c30fbab8 # main
+    secrets:
+      REPO_TOKEN: ${{ secrets.GITHUB_TOKEN}}

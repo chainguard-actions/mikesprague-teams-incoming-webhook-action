@@ -1,0 +1,233 @@
+name: "Build and Test"
+on:
+  workflow_dispatch:
+
+  push:
+    tags-ignore:
+      - "v1"
+      - "v2"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      # checkout the repo to access the action code and test files
+      - name: 👷 Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 🏗️ Setup Bun environment
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: ⚡  Cache node_modules
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ steps.setup-bun.outputs.bun-version }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ steps.setup-bun.outputs.bun-version }}-
+
+      # install dependencies if cache is not hit
+      - name: 🏗️ Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true' && !cancelled()
+        run: bun install
+
+      # build action
+      - name: 👷 Prepare action
+        if: ${{ !cancelled() }}
+        run: bun run build
+
+      # run unit tests and linters (biome and typescript/tsc)
+      - name: 🧪 Run unit tests and linters
+        if: ${{ !cancelled() }}
+        run: bun run test
+
+      # run unit test coverage and copy to publish directory
+      - name: 📊 Run test coverage and copy to publish directory
+        if: ${{ !cancelled() }}
+        run: |
+          bun run test:coverage
+          bun run test:junit
+          cp -R ./coverage ./docs/publish/coverage
+
+      # upload coverage reports to Codecov
+      - name: ⬆️ Upload coverage reports to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: ⬆️ Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          report_type: test_results
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      # begin functional/end-to-end tests by sending various test notifications to MS Teams using the action itself
+      - name: ✔️ Send Starting Notification Tests Message
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: true
+          title: "Starting Notification Tests"
+          color: "info"
+
+      # send standard simple notification
+      - name: 💬 Send Simple Notification
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: false
+          title: "Simple Notification"
+          message: "This is an example of a simple notification with a title and a body"
+
+      # send simple notification with a large title
+      - name: 💬 Send Simple Notification w/ Large Title
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: false
+          title: "Simple Notification w/ Large Title"
+          title-size: "Large"
+          message: "This is an example of a simple notification with a large title and a body"
+
+      # send simple notification with user mentions
+      - name: 💬 Send Simple Notification w/ User Mentions
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: false
+          title: "Simple Notification w/ User Mentions"
+          message: "This is an example of a simple notification that includes user mentions"
+          user-mentions: "Alice|alice@example.com,Bob|bob@example.com"
+
+      # send workflow status with message
+      - name: 📤 Send Workflow Status Notification w/ Message
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: true
+          title: "Workflow Status w/ Message"
+          message: "This is an example of a workflow notification with a custom message included in the card body"
+
+      # send workflow status and show commit message
+      - name: 📤 Send Workflow Status Notification w/ Commit Message
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: true
+          title: "Workflow Status w/ Commit Message"
+          show-commit-message: true
+
+      # send deploy card/workflow status with info status/color
+      - name: 📤 Send Workflow Info Notification
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: true
+          title: "Workflow Info"
+          color: "info"
+
+      # send deploy card/workflow status with warning status/color
+      - name: ⚠️ Send Workflow Cancelled Notification
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: true
+          title: "Workflow Cancelled"
+          color: "warning"
+
+      # send deploy card/workflow status with failure status/color
+      - name: ⛔ Send Workflow Failed Notification
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: true
+          title: "Workflow Failed"
+          color: "failure"
+
+      # send deploy card/workflow status with success status/color
+      - name: 🎉 Send Workflow Successful Notification
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: true
+          title: "Workflow Successful"
+          color: "success"
+
+      # kitchen sink test: send deploy card/workflow status with large title, custom message, color, show commit message, and user mentions
+      - name: 🧪 Kitchen Sink Test
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: true
+          title: "Kitchen Sink Test"
+          title-size: "Large"
+          message: "This is a kitchen sink test sending a deploy card with all options set including a custom message, color, large title, showing the commit message, and user mentions."
+          color: "info"
+          show-commit-message: true
+          user-mentions: "Alice|alice@example.com,Bob|bob@example.com"
+
+      # end functional/end-to-end testing by sending a completion notification with info status/color
+      - name: ✔️ Send Notification Tests Complete Message
+        if: ${{ !cancelled() }}
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          webhook-url: ${{ secrets.MS_TEAMS_WEBHOOK_URL }}
+          deploy-card: true
+          title: "Notification Tests Complete"
+          color: "info"
+
+      # create build artifact of the generated documentation site to be used in the deploy workflow
+      - name: 📦 Create and upload build artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: typescript-docs-artifact
+          path: "docs/publish"
+          retention-days: 1
+
+  # use reusable workflow to deploy generated docs to github pages
+  call-deploy-workflow:
+    if: ${{ github.actor != 'dependabot[bot]' && !cancelled() }}
+    needs: [test]
+    uses: mikesprague/reusable-workflows/.github/workflows/pages-deploy.yml@73ef64e1657d201843498e58b4847ad4c30fbab8 # main
+    secrets:
+      REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      artifact-name: typescript-docs-artifact
