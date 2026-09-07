@@ -9,6 +9,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
 | v2.2.0 | [`v2.2.0`](https://github.com/chainguard-actions/mikesprague-teams-incoming-webhook-action/tree/v2.2.0) | [`3c1a029`](https://github.com/mikesprague/teams-incoming-webhook-action/commit/3c1a0297d80c291c72e6037c0a67b8cb69845689) |
+| v2.2.1 | [`v2.2.1`](https://github.com/chainguard-actions/mikesprague-teams-incoming-webhook-action/tree/v2.2.1) | [`9dcc99d`](https://github.com/mikesprague/teams-incoming-webhook-action/commit/9dcc99db273f71977f610a7283bc4702d1703abd) |
 
 ## Privacy
 
